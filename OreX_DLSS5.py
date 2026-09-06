@@ -6,8 +6,11 @@ import io
 import math
 import os
 import platform
+import sys
 import threading
 import time
+import urllib.request
+import urllib.error
 from pathlib import Path
 
 import numpy as np
@@ -158,6 +161,78 @@ __version__ = "0.9.28"
 
 class DLSS5NRError(RuntimeError):
     pass
+
+
+def _ensure_dll_exists():
+    dll_path = _RUNTIME / "nvngx_dlssnr.dll"
+    tmp_path = _RUNTIME / "nvngx_dlssnr.dll.tmp"
+    
+    if dll_path.exists():
+        return
+        
+    _RUNTIME.mkdir(parents=True, exist_ok=True)
+    dll_url = "https://github.com/orex2121/ComfyUI-DLSS5-orex/releases/download/nvngx-v1/nvngx_dlssnr.dll"
+    
+    existing_size = 0
+    if tmp_path.exists():
+        existing_size = tmp_path.stat().st_size
+        
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    
+    if existing_size > 0:
+        headers['Range'] = f"bytes={existing_size}-"
+        print(f"[DLSS5-Ox] Resuming download of nvngx_dlssnr.dll from {existing_size / (1024*1024):.1f} MB...")
+    else:
+        print(f"[DLSS5-Ox] Missing nvngx_dlssnr.dll. Starting automatic download...")
+        
+    print(f"[DLSS5-Ox] URL: {dll_url}")
+    
+    try:
+        req = urllib.request.Request(dll_url, headers=headers)
+        with urllib.request.urlopen(req, timeout=15) as response:
+            is_partial = response.getcode() == 206
+            mode = 'ab' if is_partial else 'wb'
+            
+            if not is_partial:
+                existing_size = 0  
+                
+            total_size = int(response.info().get('Content-Length', 0)) + existing_size
+            downloaded = existing_size
+            chunk_size = 1024 * 1024  
+            
+            with open(tmp_path, mode) as out_file:
+                while True:
+                    chunk = response.read(chunk_size)
+                    if not chunk:
+                        break
+                    
+                    out_file.write(chunk)
+                    downloaded += len(chunk)
+                    
+                    if total_size > 0:
+                        percent = min(100, int(downloaded * 100 / total_size))
+                        sys.stdout.write(f"\r[DLSS5-Ox] Downloading... {percent}% ({downloaded / (1024*1024):.1f} MB / {total_size / (1024*1024):.1f} MB)")
+                        sys.stdout.flush()
+                        
+        if total_size > 0 and downloaded < total_size:
+            raise Exception(f"Download incomplete: got {downloaded} out of {total_size} bytes")
+            
+        print("\n[DLSS5-Ox] Download complete! Proceeding with initialization.")
+        
+        if dll_path.exists():
+            dll_path.unlink()
+        tmp_path.rename(dll_path)
+        
+    except Exception as e:
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+        print(f"[ERROR] [DLSS5-Ox] Failed to download nvngx_dlssnr.dll: {e}")
+        
+        raise DLSS5NRError(
+            f"Missing {dll_path} and failed to download it automatically.\n"
+            f"Error: {e}\n"
+            f"Please check your internet connection or proxy settings, or manually download the file from {dll_url} and place it in the runtime folder."
+        )
 
 
 # Output size relative to the source, mirroring the public DLSS mode labels.
@@ -352,6 +427,8 @@ def _ensure_initialized(gpu_index: int):
     if _initialized_gpu is not None:
         lib.dlss5nr_shutdown()
         _initialized_gpu = None
+
+    _ensure_dll_exists()
 
     nr_dll = _RUNTIME / "nvngx_dlssnr.dll"
     shim = _RUNTIME / "caller" / "nvngx.dll_comfy.dll"

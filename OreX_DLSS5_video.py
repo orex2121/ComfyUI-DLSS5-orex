@@ -22,6 +22,10 @@ that wrap the image node disappear from the graph. The image node, its JS and
 its __init__.py registration are left untouched.
 """
 
+import os
+import sys
+import urllib.request
+import urllib.error
 from fractions import Fraction
 
 import torch
@@ -33,9 +37,91 @@ from .OreX_DLSS5 import (
     _TEMPORAL_MODES,
 )
 
+def _ensure_dll_exists():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    runtime_dir = os.path.join(current_dir, "runtime")
+    dll_path = os.path.join(runtime_dir, "nvngx_dlssnr.dll")
+    tmp_path = dll_path + ".tmp"
+    
+    # Если итоговый файл уже есть, ничего не делаем
+    if os.path.exists(dll_path):
+        return
+        
+    os.makedirs(runtime_dir, exist_ok=True)
+    dll_url = "https://github.com/orex2121/ComfyUI-DLSS5-orex/releases/download/nvngx-v1/nvngx_dlssnr.dll"
+    
+    # 1. Проверяем наличие временного файла для докачки
+    existing_size = 0
+    if os.path.exists(tmp_path):
+        existing_size = os.path.getsize(tmp_path)
+        
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    
+    # 2. Если файл уже частично скачан, запрашиваем сервер отдать остаток
+    if existing_size > 0:
+        headers['Range'] = f"bytes={existing_size}-"
+        print(f"[DLSS5-Ox] Resuming download of nvngx_dlssnr.dll from {existing_size / (1024*1024):.1f} MB...")
+    else:
+        print(f"[DLSS5-Ox] Missing nvngx_dlssnr.dll. Starting automatic download...")
+        
+    print(f"[DLSS5-Ox] URL: {dll_url}")
+    
+    try:
+        req = urllib.request.Request(dll_url, headers=headers)
+        with urllib.request.urlopen(req, timeout=15) as response:
+            
+            # Код 206 означает, что сервер понял Range и отдает часть файла
+            is_partial = response.getcode() == 206
+            mode = 'ab' if is_partial else 'wb'
+            
+            if not is_partial:
+                existing_size = 0  # Сервер не поддерживает докачку, пишем с нуля
+                
+            total_size = int(response.info().get('Content-Length', 0)) + existing_size
+            downloaded = existing_size
+            chunk_size = 1024 * 1024  
+            
+            with open(tmp_path, mode) as out_file:
+                while True:
+                    chunk = response.read(chunk_size)
+                    if not chunk:
+                        break
+                    
+                    out_file.write(chunk)
+                    downloaded += len(chunk)
+                    
+                    if total_size > 0:
+                        percent = min(100, int(downloaded * 100 / total_size))
+                        sys.stdout.write(f"\r[DLSS5-Ox] Downloading... {percent}% ({downloaded / (1024*1024):.1f} MB / {total_size / (1024*1024):.1f} MB)")
+                        sys.stdout.flush()
+                        
+        if total_size > 0 and downloaded < total_size:
+            raise Exception(f"Download incomplete: got {downloaded} out of {total_size} bytes")
+            
+        print("\n[DLSS5-Ox] Download complete! Proceeding with initialization.")
+        
+        # 3. Безопасное переименование после 100% скачивания
+        if os.path.exists(dll_path):
+            os.remove(dll_path)
+        os.rename(tmp_path, dll_path)
+        
+    except Exception as e:
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+        print(f"[ERROR] [DLSS5-Ox] Failed to download nvngx_dlssnr.dll: {e}")
+        
+        # 4. ВАЖНО: Мы больше НЕ удаляем tmp_path здесь. 
+        # Прогресс сохраняется на диске для следующей попытки.
+        raise RuntimeError(
+            f"Missing {dll_path} and failed to download it automatically.\n"
+            f"Error: {e}\n"
+            f"Please check your internet connection or proxy settings, or manually download the file from {dll_url} and place it in the runtime folder."
+        )
+
+
 # ComfyUI's native VIDEO wire type carries a VideoInput object (lazy,
 # file-backed or in-memory). Import the builders defensively so the node
-# degrades gracefully when the comfy_api layer is unavailable.
+# degrades gracefully when the comfy_api layer is unavailable.[cite: 2]
 def _import_video_classes():
     found = {}
     try:
@@ -68,7 +154,7 @@ def _as_video_components(video):
     Accepts a VideoInput (the native VIDEO wire type) or a plain file path /
     stream (some loaders emit a path string for the VIDEO slot). The whole
     stream is decoded here into one [B,H,W,C] tensor — the same thing the
-    separate video→sequence node did, but now inside this node and in memory.
+    separate video→sequence node did, but now inside this node and in memory.[cite: 2]
     """
     if isinstance(video, torch.Tensor):
         class DummyComps:
@@ -94,7 +180,7 @@ def _build_video(images, frame_rate, audio, metadata):
     Uses the core's in-memory VideoFromComponents so this node does NOT
     re-encode inside itself — the single encode happens in the downstream
     save node, exactly like the image node hands its tensor to a save node.
-    Falls back to the bare tensor if the comfy_api layer is missing.
+    Falls back to the bare tensor if the comfy_api layer is missing.[cite: 2]
     """
     if _HAS_VIDEO_BUILDERS:
         if frame_rate is None:
@@ -116,7 +202,7 @@ class DLSS5NeuralRenderingVideo:
                 # of the IMAGE socket. No "tooltip" fields on purpose: the
                 # OreX-style EN/RU tooltips are drawn by js/OreX_DLSS5_video.js
                 # (it matches by widget name, so the list must stay in sync
-                # with the image node's DLSS5_HELP_DESCRIPTIONS).
+                # with the image node's DLSS5_HELP_DESCRIPTIONS).[cite: 2]
                 "upscaling_mode": (list(_UPSCALING_MODES), {
                     "default": "1.5x (Quality)",
                 }),
@@ -195,7 +281,7 @@ class DLSS5NeuralRenderingVideo:
     # upstream, built by js/OreX_DLSS5_video.js) passes server validation —
     # the same reason the image node sets this. In a full run it is inert: the
     # upstream is pulled in by the real downstream outputs and this node
-    # returns no ui data, so nothing extra is sent over the websocket.
+    # returns no ui data, so nothing extra is sent over the websocket.[cite: 2]
     OUTPUT_NODE = True
     FUNCTION = "process"
     CATEGORY = "experimental/DLSS 5 NR"
@@ -207,17 +293,17 @@ class DLSS5NeuralRenderingVideo:
 
     @classmethod
     def IS_CHANGED(cls, **kwargs):
-        """Инвалидируем кэш ComfyUI при переходе между Preview и обычным Run"""
+        """Инвалидируем кэш ComfyUI при переходе между Preview и обычным Run[cite: 2]"""
         import time
         try:
             from . import OreX_DLSS5
             armed = bool(OreX_DLSS5._preview_arm_ts and (time.time() - OreX_DLSS5._preview_arm_ts) < OreX_DLSS5._PREVIEW_ARM_TTL)
             if armed:
-                # В режиме Preview всегда возвращаем уникальное значение, чтобы кадры предпросмотра не кэшировались как финал
+                # В режиме Preview всегда возвращаем уникальное значение, чтобы кадры предпросмотра не кэшировались как финал[cite: 2]
                 return f"preview_{time.time()}"
         except Exception:
             pass
-        # В обычном режиме возвращаем статику, чтобы ComfyUI кэшировал полное видео как обычно
+        # В обычном режиме возвращаем статику, чтобы ComfyUI кэшировал полное видео как обычно[cite: 2]
         return "normal_run"
 
     def process(
@@ -242,10 +328,9 @@ class DLSS5NeuralRenderingVideo:
         """ComfyUI entry point. Unwrap the input VIDEO into a [B,H,W,C] frame
         tensor, run the (unchanged) image-based DLSS5 pipeline on it, and
         re-wrap the enhanced tensor back into a VIDEO. The frames are one
-        in-memory tensor from decode to re-wrap — no intermediate sequence.
+        in-memory tensor from decode to re-wrap — no intermediate sequence.[cite: 2]
         """
         import time
-        import os
         import torch
         from . import OreX_DLSS5
 
@@ -263,7 +348,7 @@ class DLSS5NeuralRenderingVideo:
                 try:
                     import folder_paths
                     
-                    # Глубокий рекурсивный поиск файла в объекте
+                    # Глубокий рекурсивный поиск файла в объекте[cite: 2]
                     def find_path(obj, depth=0):
                         if depth > 3: return None
                         
@@ -319,7 +404,7 @@ class DLSS5NeuralRenderingVideo:
 
         # --- Декодирование (мгновенное для Preview или полное для штатного запуска) ---
         if fast_tensor is not None:
-            # OpenCV успешно достал 1 кадр. Пропускаем тяжелую распаковку ComfyUI.
+            # OpenCV успешно достал 1 кадр. Пропускаем тяжелую распаковку ComfyUI.[cite: 2]
             images = fast_tensor
             frame_rate, audio, metadata = None, None, None
         else:
@@ -338,6 +423,9 @@ class DLSS5NeuralRenderingVideo:
                 f"Expected a ComfyUI VIDEO with a [B,H,W,C] frame tensor, got "
                 f"{type(images).__name__} with shape "
                 f"{tuple(images.shape) if hasattr(images, 'shape') else 'n/a'}.")
+
+        # Проверка и скачивание DLL перед вызовом основного обработчика
+        _ensure_dll_exists()
 
         impl = OreX_DLSS5.DLSS5NeuralRendering()
         result = impl.process(
