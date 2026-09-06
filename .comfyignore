@@ -1,0 +1,4 @@
+# Developer-only material excluded from ComfyUI-Manager packages.
+# (Publishing/CI/dev files were removed from the working tree in v0.5.1;
+# restore the matching entries if they are ever added back.)
+__pycache__/

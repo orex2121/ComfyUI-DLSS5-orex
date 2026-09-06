@@ -1,0 +1,1656 @@
+{
+  "id": "4bc6ea92-9582-41f5-b06c-5fe141416e8b",
+  "revision": 0,
+  "last_node_id": 186,
+  "last_link_id": 288,
+  "nodes": [
+    {
+      "id": 79,
+      "type": "VHS_VideoInfo",
+      "pos": [
+        11547.90243304852,
+        6172.807127031303
+      ],
+      "size": [
+        234.931640625,
+        238
+      ],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "video_info",
+          "name": "video_info",
+          "type": "VHS_VIDEOINFO",
+          "link": 109
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "source_fps🟨",
+          "name": "source_fps🟨",
+          "type": "FLOAT",
+          "links": []
+        },
+        {
+          "localized_name": "source_frame_count🟨",
+          "name": "source_frame_count🟨",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "localized_name": "source_duration🟨",
+          "name": "source_duration🟨",
+          "type": "FLOAT",
+          "links": null
+        },
+        {
+          "localized_name": "source_width🟨",
+          "name": "source_width🟨",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "localized_name": "source_height🟨",
+          "name": "source_height🟨",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "localized_name": "loaded_fps🟦",
+          "name": "loaded_fps🟦",
+          "type": "FLOAT",
+          "links": [
+            263
+          ]
+        },
+        {
+          "localized_name": "loaded_frame_count🟦",
+          "name": "loaded_frame_count🟦",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "localized_name": "loaded_duration🟦",
+          "name": "loaded_duration🟦",
+          "type": "FLOAT",
+          "links": null
+        },
+        {
+          "localized_name": "loaded_width🟦",
+          "name": "loaded_width🟦",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "localized_name": "loaded_height🟦",
+          "name": "loaded_height🟦",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-videohelpersuite",
+        "ver": "4ee72c065db22c9d96c2427954dc69e7b908444b",
+        "Node name for S&R": "VHS_VideoInfo"
+      },
+      "widgets_values": {}
+    },
+    {
+      "id": 63,
+      "type": "VHS_LoadVideo",
+      "pos": [
+        11401.620431763193,
+        6237.2670907354695
+      ],
+      "size": [
+        325.15625,
+        727.2064549180327
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "meta_batch",
+          "name": "meta_batch",
+          "shape": 7,
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": null
+        },
+        {
+          "localized_name": "video",
+          "name": "video",
+          "type": "COMBO",
+          "widget": {
+            "name": "video"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "force_rate",
+          "name": "force_rate",
+          "type": "FLOAT",
+          "widget": {
+            "name": "force_rate"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "custom_width",
+          "name": "custom_width",
+          "type": "INT",
+          "widget": {
+            "name": "custom_width"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "custom_height",
+          "name": "custom_height",
+          "type": "INT",
+          "widget": {
+            "name": "custom_height"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "frame_load_cap",
+          "name": "frame_load_cap",
+          "type": "INT",
+          "widget": {
+            "name": "frame_load_cap"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "skip_first_frames",
+          "name": "skip_first_frames",
+          "type": "INT",
+          "widget": {
+            "name": "skip_first_frames"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "select_every_nth",
+          "name": "select_every_nth",
+          "type": "INT",
+          "widget": {
+            "name": "select_every_nth"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "format",
+          "name": "format",
+          "shape": 7,
+          "type": "COMBO",
+          "widget": {
+            "name": "format"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "IMAGE",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            202
+          ]
+        },
+        {
+          "localized_name": "frame_count",
+          "name": "frame_count",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "localized_name": "audio",
+          "name": "audio",
+          "type": "AUDIO",
+          "links": [
+            262
+          ]
+        },
+        {
+          "localized_name": "video_info",
+          "name": "video_info",
+          "type": "VHS_VIDEOINFO",
+          "links": [
+            109
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-videohelpersuite",
+        "ver": "4ee72c065db22c9d96c2427954dc69e7b908444b",
+        "Node name for S&R": "VHS_LoadVideo"
+      },
+      "widgets_values": {
+        "video": "MiniMax_H3_00112_.mp4",
+        "force_rate": 0,
+        "custom_width": 0,
+        "custom_height": 0,
+        "frame_load_cap": 0,
+        "skip_first_frames": 0,
+        "select_every_nth": 1,
+        "format": "AnimateDiff",
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "MiniMax_H3_00112_.mp4",
+            "type": "input",
+            "format": "video/mp4",
+            "force_rate": 0,
+            "custom_width": 0,
+            "custom_height": 0,
+            "frame_load_cap": 0,
+            "skip_first_frames": 0,
+            "select_every_nth": 1
+          }
+        }
+      },
+      "widgets_values_named": {
+        "video": "MiniMax_H3_00112_.mp4",
+        "force_rate": 0,
+        "custom_width": 0,
+        "custom_height": 0,
+        "frame_load_cap": 0,
+        "skip_first_frames": 0,
+        "select_every_nth": 1,
+        "format": "AnimateDiff",
+        "choose video to upload": null,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "MiniMax_H3_00112_.mp4",
+            "type": "input",
+            "format": "video/mp4",
+            "force_rate": 0,
+            "custom_width": 0,
+            "custom_height": 0,
+            "frame_load_cap": 0,
+            "skip_first_frames": 0,
+            "select_every_nth": 1
+          }
+        }
+      }
+    },
+    {
+      "id": 170,
+      "type": "LoadImage",
+      "pos": [
+        11413.946884765386,
+        5525.340645117256
+      ],
+      "size": [
+        312.35592776138765,
+        381.69522818571386
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "COMBO",
+          "widget": {
+            "name": "image"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "choose file to upload",
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
+          "widget": {
+            "name": "upload"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "IMAGE",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            268,
+            287
+          ]
+        },
+        {
+          "localized_name": "MASK",
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.34.0",
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "vlcsnap-2026-08-26-21h44m29s539.png",
+        "image"
+      ],
+      "widgets_values_named": {
+        "image": "vlcsnap-2026-08-26-21h44m29s539.png",
+        "upload": "image"
+      }
+    },
+    {
+      "id": 171,
+      "type": "OreX Image Compare",
+      "pos": [
+        12109.208290281864,
+        5506.763652034282
+      ],
+      "size": [
+        708.3034421052216,
+        491.34622227898217
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "image_1",
+          "name": "image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 288
+        },
+        {
+          "localized_name": "image_2",
+          "name": "image_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 268
+        },
+        {
+          "localized_name": "mode",
+          "name": "mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "opacity",
+          "name": "opacity",
+          "type": "FLOAT",
+          "widget": {
+            "name": "opacity"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "blink_speed",
+          "name": "blink_speed",
+          "type": "FLOAT",
+          "widget": {
+            "name": "blink_speed"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "aux_id": "orex2121/comfyui-OreX",
+        "ver": "540a302fdc3859d23116d5fd21fd8e5648a5e283",
+        "Node name for S&R": "OreX Image Compare"
+      },
+      "widgets_values": [
+        "Slider",
+        0.5,
+        1
+      ],
+      "widgets_values_named": {
+        "mode": "Slider",
+        "opacity": 0.5,
+        "blink_speed": 1
+      }
+    },
+    {
+      "id": 168,
+      "type": "DLSS5NeuralRendering",
+      "pos": [
+        11799.767655745278,
+        5516.621056115428
+      ],
+      "size": [
+        244.56640625,
+        400
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "IMAGE",
+          "link": 287
+        },
+        {
+          "localized_name": "upscaling_mode",
+          "name": "upscaling_mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "upscaling_mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "dlss_model_preset",
+          "name": "dlss_model_preset",
+          "type": "COMBO",
+          "widget": {
+            "name": "dlss_model_preset"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "style",
+          "name": "style",
+          "type": "COMBO",
+          "widget": {
+            "name": "style"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "intensity",
+          "name": "intensity",
+          "type": "FLOAT",
+          "widget": {
+            "name": "intensity"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "tone",
+          "name": "tone",
+          "type": "FLOAT",
+          "widget": {
+            "name": "tone"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "structure",
+          "name": "structure",
+          "type": "FLOAT",
+          "widget": {
+            "name": "structure"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "skin",
+          "name": "skin",
+          "type": "FLOAT",
+          "widget": {
+            "name": "skin"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "auto_mask",
+          "name": "auto_mask",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "auto_mask"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "temporal_mode",
+          "name": "temporal_mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "temporal_mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "scene_change_threshold",
+          "name": "scene_change_threshold",
+          "type": "FLOAT",
+          "widget": {
+            "name": "scene_change_threshold"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "warmup_frames",
+          "name": "warmup_frames",
+          "type": "INT",
+          "widget": {
+            "name": "warmup_frames"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "gpu_mode",
+          "name": "gpu_mode",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "gpu_mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "chunk_frames",
+          "name": "chunk_frames",
+          "type": "INT",
+          "widget": {
+            "name": "chunk_frames"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "change_frame",
+          "name": "change_frame",
+          "type": "INT",
+          "widget": {
+            "name": "change_frame"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            288
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "lisitskyaa/ComfyUI-DLSS5-NR",
+        "ver": "4fb7b53a11bb7ddce1824e8a0a5d2fcfa8e43521",
+        "Node name for S&R": "DLSS5NeuralRendering"
+      },
+      "widgets_values": [
+        "1.5x (Quality)",
+        "M",
+        "natural",
+        2,
+        2,
+        2,
+        2,
+        false,
+        "none",
+        0.24,
+        0,
+        true,
+        32,
+        18
+      ],
+      "widgets_values_named": {
+        "upscaling_mode": "1.5x (Quality)",
+        "dlss_model_preset": "M",
+        "style": "natural",
+        "intensity": 2,
+        "tone": 2,
+        "structure": 2,
+        "skin": 2,
+        "auto_mask": false,
+        "temporal_mode": "none",
+        "scene_change_threshold": 0.24,
+        "warmup_frames": 0,
+        "gpu_mode": true,
+        "chunk_frames": 32,
+        "change_frame": 18
+      }
+    },
+    {
+      "id": 146,
+      "type": "orex Audio load",
+      "pos": [
+        13497.166717382954,
+        6185.954335183533
+      ],
+      "size": [
+        276.24286910936644,
+        287
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 4,
+      "inputs": [
+        {
+          "localized_name": "audio",
+          "name": "audio",
+          "type": "STRING",
+          "widget": {
+            "name": "audio"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "trim_start_sec",
+          "name": "trim_start_sec",
+          "type": "FLOAT",
+          "widget": {
+            "name": "trim_start_sec"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "trim_start",
+          "name": "trim_start",
+          "type": "FLOAT",
+          "widget": {
+            "name": "trim_start"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "trim_end_sec",
+          "name": "trim_end_sec",
+          "type": "FLOAT",
+          "widget": {
+            "name": "trim_end_sec"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "trim_end",
+          "name": "trim_end",
+          "type": "FLOAT",
+          "widget": {
+            "name": "trim_end"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "audio_out",
+          "name": "audio_out",
+          "type": "AUDIO",
+          "links": [
+            259
+          ]
+        },
+        {
+          "localized_name": "file_path",
+          "name": "file_path",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "localized_name": "duration",
+          "name": "duration",
+          "type": "FLOAT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "aux_id": "orex2121/comfyui-OreX",
+        "ver": "540a302fdc3859d23116d5fd21fd8e5648a5e283",
+        "Node name for S&R": "orex Audio load"
+      },
+      "widgets_values": [
+        "Q:\\ComfyUI_t212_p313-v4\\ComfyUI\\input\\Electronic1.mp3",
+        72.79,
+        72.79,
+        0,
+        0,
+        "",
+        ""
+      ],
+      "widgets_values_named": {
+        "audio": "Q:\\ComfyUI_t212_p313-v4\\ComfyUI\\input\\Electronic1.mp3",
+        "trim_start_sec": 72.79,
+        "trim_start": 72.79,
+        "trim_end_sec": 0,
+        "trim_end": 0,
+        "upload_container": "",
+        "player_container": ""
+      }
+    },
+    {
+      "id": 166,
+      "type": "LoadVideo",
+      "pos": [
+        12740.29317647371,
+        6162.214486317936
+      ],
+      "size": [
+        664.3824038020775,
+        951.9338907384596
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "file",
+          "name": "file",
+          "type": "COMBO",
+          "widget": {
+            "name": "file"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "choose file to upload",
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
+          "widget": {
+            "name": "upload"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "VIDEO",
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            264
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.34.0",
+        "Node name for S&R": "LoadVideo"
+      },
+      "widgets_values": [
+        "MiniMax_H3_00319_.mp4",
+        "image"
+      ],
+      "widgets_values_named": {
+        "file": "MiniMax_H3_00319_.mp4",
+        "upload": "image"
+      }
+    },
+    {
+      "id": 164,
+      "type": "OreX Video Preview",
+      "pos": [
+        13871.04709823313,
+        6163.522646768103
+      ],
+      "size": [
+        690.4921346800729,
+        1093.007463684382
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "images",
+          "name": "images",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "video",
+          "name": "video",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": 260
+        },
+        {
+          "localized_name": "audio",
+          "name": "audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": 259
+        },
+        {
+          "localized_name": "save_output",
+          "name": "save_output",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "save_output"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "embed_workflow",
+          "name": "embed_workflow",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "embed_workflow"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "filename_prefix",
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "fps_for_images",
+          "name": "fps_for_images",
+          "type": "FLOAT",
+          "widget": {
+            "name": "fps_for_images"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "format",
+          "name": "format",
+          "type": "COMBO",
+          "widget": {
+            "name": "format"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "codec",
+          "name": "codec",
+          "type": "COMBO",
+          "widget": {
+            "name": "codec"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "bit_depth",
+          "name": "bit_depth",
+          "type": "COMBO",
+          "widget": {
+            "name": "bit_depth"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "color_space",
+          "name": "color_space",
+          "type": "COMBO",
+          "widget": {
+            "name": "color_space"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "resolution",
+          "name": "resolution",
+          "type": "COMBO",
+          "widget": {
+            "name": "resolution"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "audio_mix",
+          "name": "audio_mix",
+          "type": "FLOAT",
+          "widget": {
+            "name": "audio_mix"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "video",
+          "name": "video",
+          "type": "VIDEO",
+          "links": null
+        }
+      ],
+      "properties": {
+        "aux_id": "orex2121/comfyui-OreX",
+        "ver": "540a302fdc3859d23116d5fd21fd8e5648a5e283",
+        "Node name for S&R": "OreX Video Preview"
+      },
+      "widgets_values": [
+        false,
+        true,
+        "video/ComfyUI",
+        30,
+        "mp4",
+        "h264",
+        "auto",
+        "sRGB",
+        "1152p (2048x1152) 2K",
+        100
+      ],
+      "widgets_values_named": {
+        "save_output": false,
+        "embed_workflow": true,
+        "filename_prefix": "video/ComfyUI",
+        "fps_for_images": 30,
+        "format": "mp4",
+        "codec": "h264",
+        "bit_depth": "auto",
+        "color_space": "sRGB",
+        "resolution": "1152p (2048x1152) 2K",
+        "audio_mix": 100
+      }
+    },
+    {
+      "id": 165,
+      "type": "OreX Video Preview",
+      "pos": [
+        12054.032901801864,
+        6157.352974365864
+      ],
+      "size": [
+        560.8961300052233,
+        921.605896520662
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "images",
+          "name": "images",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 261
+        },
+        {
+          "localized_name": "video",
+          "name": "video",
+          "shape": 7,
+          "type": "VIDEO",
+          "link": null
+        },
+        {
+          "localized_name": "audio",
+          "name": "audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": 262
+        },
+        {
+          "localized_name": "save_output",
+          "name": "save_output",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "save_output"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "embed_workflow",
+          "name": "embed_workflow",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "embed_workflow"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "filename_prefix",
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "fps_for_images",
+          "name": "fps_for_images",
+          "type": "FLOAT",
+          "widget": {
+            "name": "fps_for_images"
+          },
+          "link": 263
+        },
+        {
+          "localized_name": "format",
+          "name": "format",
+          "type": "COMBO",
+          "widget": {
+            "name": "format"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "codec",
+          "name": "codec",
+          "type": "COMBO",
+          "widget": {
+            "name": "codec"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "bit_depth",
+          "name": "bit_depth",
+          "type": "COMBO",
+          "widget": {
+            "name": "bit_depth"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "color_space",
+          "name": "color_space",
+          "type": "COMBO",
+          "widget": {
+            "name": "color_space"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "resolution",
+          "name": "resolution",
+          "type": "COMBO",
+          "widget": {
+            "name": "resolution"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "audio_mix",
+          "name": "audio_mix",
+          "type": "FLOAT",
+          "widget": {
+            "name": "audio_mix"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "video",
+          "name": "video",
+          "type": "VIDEO",
+          "links": null
+        }
+      ],
+      "properties": {
+        "aux_id": "orex2121/comfyui-OreX",
+        "ver": "540a302fdc3859d23116d5fd21fd8e5648a5e283",
+        "Node name for S&R": "OreX Video Preview"
+      },
+      "widgets_values": [
+        false,
+        true,
+        "video/ComfyUI",
+        30,
+        "mp4",
+        "h264",
+        "auto",
+        "sRGB",
+        "1152p (2048x1152) 2K",
+        100
+      ],
+      "widgets_values_named": {
+        "save_output": false,
+        "embed_workflow": true,
+        "filename_prefix": "video/ComfyUI",
+        "fps_for_images": 30,
+        "format": "mp4",
+        "codec": "h264",
+        "bit_depth": "auto",
+        "color_space": "sRGB",
+        "resolution": "1152p (2048x1152) 2K",
+        "audio_mix": 100
+      }
+    },
+    {
+      "id": 128,
+      "type": "DLSS5NeuralRenderingVideo",
+      "pos": [
+        13516.66174319182,
+        6541.396411982602
+      ],
+      "size": [
+        244.56640625,
+        702.7484654017858
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "video",
+          "name": "video",
+          "type": "VIDEO",
+          "link": 264
+        },
+        {
+          "localized_name": "upscaling_mode",
+          "name": "upscaling_mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "upscaling_mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "dlss_model_preset",
+          "name": "dlss_model_preset",
+          "type": "COMBO",
+          "widget": {
+            "name": "dlss_model_preset"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "style",
+          "name": "style",
+          "type": "COMBO",
+          "widget": {
+            "name": "style"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "intensity",
+          "name": "intensity",
+          "type": "FLOAT",
+          "widget": {
+            "name": "intensity"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "tone",
+          "name": "tone",
+          "type": "FLOAT",
+          "widget": {
+            "name": "tone"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "structure",
+          "name": "structure",
+          "type": "FLOAT",
+          "widget": {
+            "name": "structure"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "skin",
+          "name": "skin",
+          "type": "FLOAT",
+          "widget": {
+            "name": "skin"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "auto_mask",
+          "name": "auto_mask",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "auto_mask"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "temporal_mode",
+          "name": "temporal_mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "temporal_mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "scene_change_threshold",
+          "name": "scene_change_threshold",
+          "type": "FLOAT",
+          "widget": {
+            "name": "scene_change_threshold"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "warmup_frames",
+          "name": "warmup_frames",
+          "type": "INT",
+          "widget": {
+            "name": "warmup_frames"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "gpu_mode",
+          "name": "gpu_mode",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "gpu_mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "chunk_frames",
+          "name": "chunk_frames",
+          "type": "INT",
+          "widget": {
+            "name": "chunk_frames"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "change_frame",
+          "name": "change_frame",
+          "type": "INT",
+          "widget": {
+            "name": "change_frame"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "video",
+          "name": "video",
+          "type": "VIDEO",
+          "links": [
+            260
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "lisitskyaa/ComfyUI-DLSS5-NR",
+        "ver": "4fb7b53a11bb7ddce1824e8a0a5d2fcfa8e43521",
+        "Node name for S&R": "DLSS5NeuralRenderingVideo"
+      },
+      "widgets_values": [
+        "2x (Performance)",
+        "M",
+        "natural",
+        2,
+        2,
+        2,
+        2,
+        false,
+        "auto",
+        0.24,
+        0,
+        true,
+        32,
+        0
+      ],
+      "widgets_values_named": {
+        "upscaling_mode": "2x (Performance)",
+        "dlss_model_preset": "M",
+        "style": "natural",
+        "intensity": 2,
+        "tone": 2,
+        "structure": 2,
+        "skin": 2,
+        "auto_mask": false,
+        "temporal_mode": "auto",
+        "scene_change_threshold": 0.24,
+        "warmup_frames": 0,
+        "gpu_mode": true,
+        "chunk_frames": 32,
+        "change_frame": 0
+      }
+    },
+    {
+      "id": 118,
+      "type": "DLSS5NeuralRendering",
+      "pos": [
+        11779.942717695756,
+        6238.998892577231
+      ],
+      "size": [
+        244.56640625,
+        702.7484654017858
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "IMAGE",
+          "link": 202
+        },
+        {
+          "localized_name": "upscaling_mode",
+          "name": "upscaling_mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "upscaling_mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "dlss_model_preset",
+          "name": "dlss_model_preset",
+          "type": "COMBO",
+          "widget": {
+            "name": "dlss_model_preset"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "style",
+          "name": "style",
+          "type": "COMBO",
+          "widget": {
+            "name": "style"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "intensity",
+          "name": "intensity",
+          "type": "FLOAT",
+          "widget": {
+            "name": "intensity"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "tone",
+          "name": "tone",
+          "type": "FLOAT",
+          "widget": {
+            "name": "tone"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "structure",
+          "name": "structure",
+          "type": "FLOAT",
+          "widget": {
+            "name": "structure"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "skin",
+          "name": "skin",
+          "type": "FLOAT",
+          "widget": {
+            "name": "skin"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "auto_mask",
+          "name": "auto_mask",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "auto_mask"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "temporal_mode",
+          "name": "temporal_mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "temporal_mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "scene_change_threshold",
+          "name": "scene_change_threshold",
+          "type": "FLOAT",
+          "widget": {
+            "name": "scene_change_threshold"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "warmup_frames",
+          "name": "warmup_frames",
+          "type": "INT",
+          "widget": {
+            "name": "warmup_frames"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "gpu_mode",
+          "name": "gpu_mode",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "gpu_mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "chunk_frames",
+          "name": "chunk_frames",
+          "type": "INT",
+          "widget": {
+            "name": "chunk_frames"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "change_frame",
+          "name": "change_frame",
+          "type": "INT",
+          "widget": {
+            "name": "change_frame"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            261
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "lisitskyaa/ComfyUI-DLSS5-NR",
+        "ver": "4fb7b53a11bb7ddce1824e8a0a5d2fcfa8e43521",
+        "Node name for S&R": "DLSS5NeuralRendering"
+      },
+      "widgets_values": [
+        "1.5x (Quality)",
+        "M",
+        "natural",
+        1,
+        2,
+        2,
+        2,
+        false,
+        "auto",
+        0.24,
+        0,
+        true,
+        32,
+        18
+      ],
+      "widgets_values_named": {
+        "upscaling_mode": "1.5x (Quality)",
+        "dlss_model_preset": "M",
+        "style": "natural",
+        "intensity": 1,
+        "tone": 2,
+        "structure": 2,
+        "skin": 2,
+        "auto_mask": false,
+        "temporal_mode": "auto",
+        "scene_change_threshold": 0.24,
+        "warmup_frames": 0,
+        "gpu_mode": true,
+        "chunk_frames": 32,
+        "change_frame": 18
+      }
+    }
+  ],
+  "links": [
+    [
+      109,
+      63,
+      3,
+      79,
+      0,
+      "VHS_VIDEOINFO"
+    ],
+    [
+      202,
+      63,
+      0,
+      118,
+      0,
+      "IMAGE"
+    ],
+    [
+      259,
+      146,
+      0,
+      164,
+      2,
+      "AUDIO"
+    ],
+    [
+      260,
+      128,
+      0,
+      164,
+      1,
+      "VIDEO"
+    ],
+    [
+      261,
+      118,
+      0,
+      165,
+      0,
+      "IMAGE"
+    ],
+    [
+      262,
+      63,
+      2,
+      165,
+      2,
+      "AUDIO"
+    ],
+    [
+      263,
+      79,
+      5,
+      165,
+      6,
+      "FLOAT"
+    ],
+    [
+      264,
+      166,
+      0,
+      128,
+      0,
+      "VIDEO"
+    ],
+    [
+      268,
+      170,
+      0,
+      171,
+      1,
+      "IMAGE"
+    ],
+    [
+      287,
+      170,
+      0,
+      168,
+      0,
+      "IMAGE"
+    ],
+    [
+      288,
+      168,
+      0,
+      171,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "Video with video",
+      "bounding": [
+        12696.617881821763,
+        6079.04718552984,
+        1907.050543783862,
+        1200.5793851496219
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 2,
+      "title": "Video with Sequence",
+      "bounding": [
+        11391.620431763193,
+        6067.773079235149,
+        1242.291119479225,
+        1061.2536545975026
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 3,
+      "title": "Image DLSS 5",
+      "bounding": [
+        11403.946884765386,
+        5436.763652034282,
+        1423.5648476216993,
+        571.3462222789822
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.39142513012204694,
+      "offset": [
+        -11251.620431763193,
+        -5356.763652034282
+      ]
+    }
+  },
+  "version": 0.4
+}
