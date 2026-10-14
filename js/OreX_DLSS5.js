@@ -1,3 +1,5 @@
+import { app } from "../../scripts/app.js"; // v0.9.29: new frontend has no global `app`
+
 // Tooltips for the DLSS 5 Neural Rendering node, in the OreX style: hover a
 // widget for 800 ms and a dark box with the signature blue border appears to
 // the right of the node — icon + name title, an EN line and an RU line. Long

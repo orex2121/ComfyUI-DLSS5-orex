@@ -1,7 +1,7 @@
 [project]
 name = "comfyui-dlss5-orex"
 description = "Unofficial ComfyUI nodes for NVIDIA DLSS 5 Neural Rendering (NGX feature 18)"
-version = "1.0.2"
+version = "1.0.3"
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [

@@ -1,3 +1,5 @@
+import { app } from "../../scripts/app.js"; // new frontend has no global `app`
+
 // Tooltips + Preview/Hide controls for the 🕹️DLSS 5 Video (OreX) node
 // (DLSS5NeuralRenderingVideo, OreX_DLSS5_video.py). A visual copy of
 // js/OreX_DLSS5.js re-keyed to the video node: hover a widget for 800 ms and
