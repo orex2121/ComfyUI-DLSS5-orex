@@ -47,7 +47,7 @@ For **AI-generated images and video**, it works as a post-processing pass: conne
 - 🎬 **🕹️DLSS 5 Video (OreX)** — video-stream node: `VIDEO` in, enhanced `VIDEO` out, with the identical per-frame pipeline;
 - 🔁 bridge rewritten from scratch — the D3D12 bridge between ComfyUI and `nvngx_dlssnr.dll` is fully rewritten and significantly optimized for speed and resource usage;
 - 🖥️ GPU coverage — built primarily for RTX 50 and RTX 40 series; also runs on RTX 30 and RTX 20 (slower);
-- 🚀 in-process execution — the native D3D12 bridge (`dlss5nr_bridge.dll`) runs inside the ComfyUI process; no subprocesses, no disk round-trip;
+- 🚀 in-process execution — the native D3D12 bridge (`dlss5nr_bridge.dll`) runs inside the ComfyUI process; the Video node additionally uses FFmpeg and disk-backed chunks to keep long videos out of RAM;
 - ⚡ zero-PCIe CUDA path — CUDA/D3D12 external-memory interop (shared-heap frame textures imported via `cuImportExternalMemory`, GPU-side handoff via an external semaphore): when the input tensor already sits on the bridge's GPU, pixels never leave VRAM;
 - 💨 near real time — a 90-second video is processed in about 120 seconds on an RTX 5090; `chunk_frames` bounds peak memory, so even very long videos can be processed;
 - 🛟 transparent fallback — if interop is unavailable or fails mid-run, the node automatically switches to the CPU staging path;
@@ -55,7 +55,8 @@ For **AI-generated images and video**, it works as a post-processing pass: conne
 - 📈 output sizes up to 8K — upscaling modes from `1x (DLAA / native)` to `3x (Ultra Performance)`, 7680×4320 boundary;
 - 🧠 Neural Rendering style and strength controls — `style`, `intensity`, `tone`, `structure`, `skin`, `auto_mask`;
 - ⏱️ temporal history management — `auto` (reset on detected scene changes) or `none`, with a scene-change threshold and warmup frames;
-- 🧮 memory-saving chunked processing — `chunk_frames` splits long sequences into chunks while temporal history carries across chunk boundaries (identical output, peak RAM/VRAM drops from O(batch) to O(chunk));
+- 🧮 memory-saving chunked processing — the image node chunks an in-memory batch; the Video node decodes, processes and encodes only `chunk_frames` at a time and stores completed parts on disk;
+- 💾 resumable video processing — `continue_if_stopped` keeps completed Video-node chunks in `ComfyUI/output/dlss5_resume` after Stop/error and resumes after a ComfyUI restart;
 - 🖼️ single-frame **Preview** — queues only the subgraph feeding the node, processes one frame, and draws the result under the node; no downstream outputs and no prior run needed;
 - 🟢 **GPU ON** / 🔴 **GPU OFF** toggle — controls whether CPU batches are moved into VRAM for faster staging;
 - 💬 OreX-style hover tooltips in English and Russian for every widget.
@@ -123,8 +124,9 @@ powershell -ExecutionPolicy Bypass -File bridge\build_bridge.ps1
 
 1. Add **🕹️DLSS 5 Video (OreX)** and connect a `VIDEO` to its input.
 2. The same control set applies — the only difference is the wire type.
-3. Queue the workflow — the node unwraps the video into frames, runs the identical per-frame pipeline, and re-wraps the result into a `VIDEO` with the original frame rate, audio, and metadata.
-4. For long sequences keep `chunk_frames` at its default (64) or raise it; `0` processes the whole batch at once.
+3. Queue the workflow — the node decodes, processes and encodes one disk-backed chunk at a time and returns a file-backed `VIDEO` with the original frame rate and audio.
+4. For long videos keep `chunk_frames` at 32 or lower it if RAM/VRAM is still tight. `0` enables the legacy full-video in-memory path.
+5. Enable `continue_if_stopped` to retain completed chunks after Stop/error and resume them after a repeated run or ComfyUI restart. The cache is deleted after successful completion.
 
 On an RTX 5090 a 90-second video takes roughly 120 seconds to process — close to real time. Because `chunk_frames` bounds peak memory, very long videos can be processed as well.
 
@@ -180,7 +182,8 @@ Both nodes share the same control set and defaults (v0.9.28). Every widget has a
 | `scene_change_threshold` | 0.01 – 1.0, step 0.01 | Mean luminance change between consecutive frames above which the temporal history is reset (default 0.24). |
 | `warmup_frames` | 0 – 16 | Extra re-evaluations after each history reset so temporal accumulation settles before the frame's output is kept (default 0). |
 | `gpu_mode` | 🟢 GPU ON / 🔴 GPU OFF | **ON:** the bridge runs on the first NVIDIA GPU and a CPU input batch is moved into its VRAM before processing (faster staging, zero-PCIe path when CUDA interop is active) — only if batch + output fit the free VRAM. **OFF:** frames stay where they are; the bridge still runs on the first GPU (default ON). |
-| `chunk_frames` | 0 – 256 | Memory-saving mode for long sequences (default 64). `0` = off — the whole batch is processed at once. `>0` = process that many frames per chunk and assemble the result into a single full-length tensor. Frames keep their order on the same bridge session, so temporal history carries across chunk boundaries exactly as in an unchunked run — identical output, no quality loss at the seams. Peak RAM/VRAM drops from input batch + output batch to one chunk + the output tensor (which must exist anyway). Rule of thumb: pick N so that N × out_h × out_w × 12 bytes ≈ 1–2 GiB. |
+| `chunk_frames` | 0 – 256 | Image node: internal tensor chunks. Video node: disk-backed chunks (default 32), so neither the full decoded input nor the full result is held in RAM. `0` uses the legacy full-video in-memory path. Smaller values reduce peak RAM/VRAM. A disk chunk starts fresh temporal history, so its first frames can differ slightly from an uninterrupted run. |
+| `continue_if_stopped` | off / on | Video node only. OFF deletes temporary parts after completion, Stop or error. ON keeps completed parts in `ComfyUI/output/dlss5_resume` and resumes after a repeated run or ComfyUI restart. The cache is deleted after successful completion or when another source video is started. |
 | `change_frame` | 0 – 100000 | Frame index for the **Preview** button below it (default 0 = first frame). Not used by a full run; an index beyond the end of the sequence takes the last frame. |
 
 At `1x (DLAA / native)` the output resolution is identical to the input. Larger upscaling modes resample first and then enhance; this node is Neural Rendering / post-processing, not DLSS Super Resolution. Output is capped at the supported 7680×4320 (8K) boundary.
@@ -352,7 +355,7 @@ Let us know if you encounter a problem and we will do our best to fix it.
 - 🎬 **🕹️DLSS 5 Video (OreX)** — узел для видеопотока: `VIDEO` на входе, улучшенное `VIDEO` на выходе, с идентичным посткадровым конвейером;
 - 🔁 мост переписан с нуля — D3D12-мост между ComfyUI и `nvngx_dlssnr.dll` полностью переписан и значительно оптимизирован по скорости и потреблению ресурсов;
 - 🖥️ покрытие GPU — в первую очередь для серий RTX 50 и RTX 40; также работает на RTX 30 и RTX 20 (медленнее);
-- 🚀 in-process-выполнение — нативный D3D12-мост (`dlss5nr_bridge.dll`) работает внутри процесса ComfyUI; без подпроцессов и без записи на диск;
+- 🚀 in-process-выполнение — нативный D3D12-мост (`dlss5nr_bridge.dll`) работает внутри процесса ComfyUI; Video-узел дополнительно использует FFmpeg и дисковые чанки, чтобы не держать длинное видео в RAM;
 - ⚡ zero-PCIe путь CUDA — CUDA/D3D12 external-memory interop (текстуры кадров в shared-heap, импорт через `cuImportExternalMemory`, GPU-сторона handoff через external semaphore): когда тензор входа уже находится на GPU моста, пиксели никогда не покидают видеопамять;
 - 💨 близко к реальному времени — видео длительностью 90 секунд обрабатывается примерно за 120 секунд на RTX 5090; `chunk_frames` ограничивает пиковую память, поэтому можно обрабатывать и очень продолжительные видео;
 - 🛟 прозрачный fallback — если interop недоступен или ломается посреди запуска, узел автоматически переключается на CPU staging-путь;
@@ -360,7 +363,8 @@ Let us know if you encounter a problem and we will do our best to fix it.
 - 📈 размеры вывода до 8K — режимы от `1x (DLAA / native)` до `3x (Ultra Performance)`, граница 7680×4320;
 - 🧠 управление стилем и силой нейронного рендеринга — `style`, `intensity`, `tone`, `structure`, `skin`, `auto_mask`;
 - ⏱️ управление временной историей — `auto` (сброс при обнаружении смены сцены) или `none`, порог смены сцены и warmup-кадры;
-- 🧮 экономия памяти для длинных последовательностей — `chunk_frames` разбивает их на чанки, при этом временная история сохраняется через границы чанков (результат идентичен, пиковые RAM/VRAM снижаются с O(batch) до O(chunk));
+- 🧮 экономия памяти — узел изображений делит уже загруженный батч, а Video-узел декодирует, обрабатывает и кодирует только `chunk_frames` кадров за раз и сохраняет готовые части на диск;
+- 💾 продолжение видео — `continue_if_stopped` сохраняет готовые чанки Video-узла в `ComfyUI/output/dlss5_resume` после Stop/ошибки и продолжает после перезапуска ComfyUI;
 - 🖼️ **Preview** одного кадра — ставит в очередь только подграф, питающий узел, обрабатывает один кадр и рисует результат под узлом; без выходных данных downstream-узлов и без предварительного запуска;
 - 🟢 **GPU ON** / 🔴 **GPU OFF** — переключатель, управляющий тем, перемещаются ли CPU-батчи в видеопамять для быстрой staging-обработки;
 - 💬 OreX-подсказки при наведении на каждый виджет — на английском и на русском.
@@ -428,8 +432,9 @@ powershell -ExecutionPolicy Bypass -File bridge\build_bridge.ps1
 
 1. Добавьте **🕹️DLSS 5 Video (OreX)** и подключите `VIDEO` на вход.
 2. Действует тот же набор управления — единственное отличие, это тип провода.
-3. Запустите workflow — узел распаковывает видео в кадры, прогоняет их по тому же посткадровому конвейеру и собирает результат обратно в `VIDEO` с исходной частотой кадров, аудио и метаданными.
-4. Для длинных последовательностей оставьте `chunk_frames` по умолчанию (64) или увеличьте его; `0` обрабатывает весь батч целиком.
+3. Запустите workflow — узел декодирует, обрабатывает и кодирует по одному дисковому чанку и возвращает файловый `VIDEO` с исходной частотой кадров и аудио.
+4. Для длинного видео оставьте `chunk_frames` равным 32 или уменьшите его, если RAM/VRAM всё ещё не хватает. `0` включает старый режим с полным видео в памяти.
+5. Включите `continue_if_stopped`, чтобы сохранить готовые чанки после Stop/ошибки и продолжить после повторного запуска или перезапуска ComfyUI. После успешного завершения кэш удаляется.
 
 На RTX 5090 видео длительностью 90 секунд обрабатывается примерно за 120 секунд — близко к реальному времени. Благодаря разбиению на чанки (`chunk_frames`) пиковая память остаётся ограниченной, так что можно обрабатывать и очень продолжительные видео.
 
@@ -485,7 +490,8 @@ Torch tensor -> CPU float32 -> D3D12 RGBA16F -> DLSS NR -> CPU float32 -> Torch 
 | `scene_change_threshold` | 0.01 – 1.0, шаг 0.01 | Среднее изменение яркости между соседними кадрами, выше которого временная история сбрасывается (по умолчанию 0.24). |
 | `warmup_frames` | 0 – 16 | Дополнительные повторные проходы после каждого сброса истории, чтобы накопление успело «устояться» до сохранения кадра (по умолчанию 0). |
 | `gpu_mode` | 🟢 GPU ON / 🔴 GPU OFF | **ON:** мост работает на первом GPU NVIDIA, а CPU-батч перед обработкой перемещается в его видеопамять (быстрая staging, zero-PCIe путь при активном CUDA interop) — только если батч + вывод помещаются в свободную VRAM. **OFF:** кадры остаются там, где были; мост по-прежнему работает на первом GPU (по умолчанию ON). |
-| `chunk_frames` | 0 – 256 | Режим экономии памяти для длинных последовательностей (по умолчанию 64). `0` = выкл — весь батч обрабатывается целиком. `>0` = обрабатывать по столько кадров за чанк и собрать результат в единый тензор полной длины. Кадры сохраняют порядок в одной сессии моста, поэтому временная история переходит через границы чанков так же, как и без чанков — результат идентичен, потери качества на швах нет. Пиковые RAM/VRAM падают с «входной батч + выходной батч» до «один чанк + тензор вывода» (который всё равно должен существовать). Правило: N × out_h × out_w × 12 байт ≈ 1–2 GiB. |
+| `chunk_frames` | 0 – 256 | Узел изображений: внутренние чанки тензора. Video-узел: дисковые чанки (по умолчанию 32), поэтому полный декодированный вход и полный результат не находятся в RAM. `0` включает старый режим с полным видео в памяти. Меньшее значение снижает пиковые RAM/VRAM. Дисковый чанк начинает временную историю заново, поэтому его первые кадры могут немного отличаться от непрерывного прогона. |
+| `continue_if_stopped` | выкл / вкл | Только Video-узел. OFF удаляет временные части после завершения, Stop или ошибки. ON хранит готовые части в `ComfyUI/output/dlss5_resume` и продолжает после повторного запуска или перезапуска ComfyUI. Кэш удаляется после успешного завершения или при запуске другого исходного видео. |
 | `change_frame` | 0 – 100000 | Индекс кадра для кнопки **Preview** под ним (по умолчанию 0 = первый кадр). Не используется в полном прогоне; индекс за концом последовательности берёт последний кадр. |
 
 При `1x (DLAA / native)` разрешение вывода совпадает с входным. Крупные режимы сначала ресемплируют кадр, затем улучшают его; это узел нейронного рендеринга / постобработки, а не DLSS Super Resolution. Вывод ограничен поддерживаемой границей 7680×4320 (8K).

@@ -11,24 +11,30 @@ difference is the wire type — it takes a ComfyUI VIDEO (a VideoInput object)
 on the input and emits a ComfyUI VIDEO on the output instead of an IMAGE
 tensor batch.
 
-The per-frame neural pipeline is NOT re-implemented here. process() unwraps
-the input VideoInput into its [B,H,W,C] frame tensor, delegates to the
-UNCHANGED DLSS5NeuralRendering pipeline (a fresh instance — the class carries
-no per-instance state, everything is module-level in OreX_DLSS5.py), and
-re-wraps the enhanced tensor back into a VideoInput. The frames are a single
-in-memory tensor from decode to re-wrap — there is no intermediate
-image-sequence, so the video→sequence and sequence→video conversion nodes
-that wrap the image node disappear from the graph. The image node, its JS and
-its __init__.py registration are left untouched.
+The per-frame neural pipeline is NOT re-implemented here. For a normal run,
+process() decodes a bounded frame chunk, delegates it to the unchanged
+DLSS5NeuralRendering pipeline, writes the completed part to disk and finally
+concatenates the parts into a file-backed VideoInput. This keeps both input and
+output memory bounded for long videos and permits resume after interruption.
 """
 
+import gc
+import hashlib
+import json
 import os
+import shutil
+import subprocess
 import sys
+import tempfile
 import urllib.request
 import urllib.error
 from fractions import Fraction
+from pathlib import Path
 
+import folder_paths
 import torch
+import comfy.model_management
+import comfy.utils
 
 from .OreX_DLSS5 import (
     DLSS5NeuralRendering,
@@ -146,6 +152,93 @@ VideoFromComponents = _VCLASSES.get("VideoFromComponents")
 VideoComponents = _VCLASSES.get("VideoComponents")
 VideoFromFile = _VCLASSES.get("VideoFromFile")
 _HAS_VIDEO_BUILDERS = VideoFromComponents is not None and VideoComponents is not None
+
+
+def _source_path(video):
+    if hasattr(video, "get_stream_source"):
+        source = video.get_stream_source()
+        if isinstance(source, (str, os.PathLike)) and Path(source).is_file():
+            return Path(source).resolve()
+    return None
+
+
+def _write_manifest(path, manifest):
+    temporary = path.with_suffix(".tmp")
+    temporary.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    os.replace(temporary, path)
+
+
+def _clear_directory(path, keep=None):
+    if not path.is_dir():
+        return
+    for child in path.iterdir():
+        if keep is not None and child == keep:
+            continue
+        if child.is_dir():
+            shutil.rmtree(child, ignore_errors=True)
+        else:
+            child.unlink(missing_ok=True)
+
+
+def _resume_config(video, source, total_frames, fps, chunk_frames, settings):
+    stat = source.stat()
+    trim = video.get_active_trim_window() if hasattr(video, "get_active_trim_window") else (0.0, 0.0)
+    return {
+        "version": 1,
+        "source": {"path": str(source), "size": stat.st_size, "mtime_ns": stat.st_mtime_ns},
+        "trim": [float(trim[0]), float(trim[1])],
+        "total_frames": total_frames,
+        "fps": f"{fps.numerator}/{fps.denominator}",
+        "chunk_frames": chunk_frames,
+        "settings": settings,
+    }
+
+
+def _valid_part(path, expected_frames, fps):
+    if VideoFromFile is None or not path.is_file() or path.stat().st_size == 0:
+        return False
+    try:
+        part = VideoFromFile(str(path))
+        return part.get_frame_count() == expected_frames and Fraction(part.get_frame_rate()) == fps
+    except Exception:
+        return False
+
+
+def _write_part(images, fps, path):
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        raise RuntimeError("DLSS 5 Video disk chunks require FFmpeg in PATH.")
+    height, width = images.shape[1:3]
+    path.unlink(missing_ok=True)
+    command = [
+        ffmpeg, "-hide_banner", "-loglevel", "warning", "-y",
+        "-f", "rawvideo", "-pix_fmt", "rgb24", "-video_size", f"{width}x{height}",
+        "-framerate", f"{fps.numerator}/{fps.denominator}", "-i", "-", "-an",
+        "-c:v", "libx264", "-preset", "veryfast", "-crf", "16", "-pix_fmt", "yuv420p",
+        "-movflags", "+faststart", str(path),
+    ]
+    process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    try:
+        for frame in images:
+            data = (frame.detach()[..., :3] * 255).clamp(0, 255).byte().cpu().contiguous().numpy()
+            view = memoryview(data).cast("B")
+            for offset in range(0, len(view), 1024 * 1024):
+                process.stdin.write(view[offset:offset + 1024 * 1024])
+        process.stdin.close()
+        error = process.stderr.read().decode("utf-8", errors="replace")
+        return_code = process.wait()
+    except BaseException:
+        process.kill()
+        process.wait()
+        path.unlink(missing_ok=True)
+        raise
+    if return_code:
+        path.unlink(missing_ok=True)
+        raise RuntimeError("FFmpeg failed to encode a DLSS chunk:\n" + error[-4000:])
+
+
+def _ffconcat_path(path):
+    return str(path.resolve()).replace("\\", "/").replace("'", "'\\''")
 
 
 def _as_video_components(video):
@@ -266,6 +359,11 @@ class DLSS5NeuralRenderingVideo:
                     "max": 256,
                     "step": 1,
                 }),
+                "continue_if_stopped": ("BOOLEAN", {
+                    "default": False,
+                    "label_on": "ON",
+                    "label_off": "OFF",
+                }),
                 "change_frame": ("INT", {
                     "default": 0,
                     "min": 0,
@@ -322,7 +420,8 @@ class DLSS5NeuralRenderingVideo:
         scene_change_threshold=0.24,
         warmup_frames=0,
         gpu_mode=True,
-        chunk_frames=64,
+        chunk_frames=32,
+        continue_if_stopped=False,
         change_frame=0,
     ):
         """ComfyUI entry point. Unwrap the input VIDEO into a [B,H,W,C] frame
@@ -402,6 +501,16 @@ class DLSS5NeuralRenderingVideo:
                 except Exception as e:
                     print(f"[DLSS5-Ox] Fast preview extraction failed: {e}")
 
+        source = _source_path(video)
+        if (not armed and int(chunk_frames) > 0 and source is not None
+                and hasattr(video, "as_trimmed") and hasattr(video, "get_frame_count")
+                and hasattr(video, "get_frame_rate")):
+            return self._process_disk_chunks(
+                video, source, upscaling_mode, dlss_model_preset, style, preset,
+                intensity, tone, structure, skin, auto_mask, temporal_mode,
+                scene_change_threshold, warmup_frames, gpu_mode, int(chunk_frames),
+                bool(continue_if_stopped), change_frame)
+
         # --- Декодирование (мгновенное для Preview или полное для штатного запуска) ---
         if fast_tensor is not None:
             # OpenCV успешно достал 1 кадр. Пропускаем тяжелую распаковку ComfyUI.[cite: 2]
@@ -445,3 +554,161 @@ class DLSS5NeuralRenderingVideo:
 
         out = _build_video(result_tensor, frame_rate, audio, metadata)
         return (out,)
+
+    def _process_disk_chunks(
+        self, video, source, upscaling_mode, dlss_model_preset, style, preset,
+        intensity, tone, structure, skin, auto_mask, temporal_mode,
+        scene_change_threshold, warmup_frames, gpu_mode, chunk_frames,
+        continue_if_stopped, change_frame,
+    ):
+        total_frames = int(video.get_frame_count())
+        fps = Fraction(video.get_frame_rate())
+        if total_frames < 1:
+            raise RuntimeError("The input video contains no frames.")
+
+        settings = {
+            "upscaling_mode": upscaling_mode,
+            "dlss_model_preset": dlss_model_preset,
+            "style": style,
+            "preset": preset,
+            "intensity": intensity,
+            "tone": tone,
+            "structure": structure,
+            "skin": skin,
+            "auto_mask": auto_mask,
+            "temporal_mode": temporal_mode,
+            "scene_change_threshold": scene_change_threshold,
+            "warmup_frames": warmup_frames,
+            "gpu_mode": gpu_mode,
+        }
+        config = _resume_config(video, source, total_frames, fps, chunk_frames, settings)
+        resume_id = hashlib.sha256(json.dumps(config, sort_keys=True).encode("utf-8")).hexdigest()[:16]
+        resume_root = Path(folder_paths.get_output_directory()) / "dlss5_resume"
+
+        if continue_if_stopped:
+            temp_root = resume_root / resume_id
+            resume_root.mkdir(parents=True, exist_ok=True)
+            _clear_directory(resume_root, keep=temp_root)
+        else:
+            shutil.rmtree(resume_root, ignore_errors=True)
+            temp_root = Path(tempfile.mkdtemp(prefix="dlss5_video_", dir=folder_paths.get_temp_directory()))
+        temp_root.mkdir(parents=True, exist_ok=True)
+
+        plan = [(start, min(start + chunk_frames, total_frames))
+                for start in range(0, total_frames, chunk_frames)]
+        parts = [temp_root / f"part_{index:05d}.mp4" for index in range(len(plan))]
+        manifest_path = temp_root / "manifest.json"
+        manifest = {"config": config, "completed_parts": []}
+        if continue_if_stopped and manifest_path.is_file():
+            try:
+                existing = json.loads(manifest_path.read_text(encoding="utf-8"))
+                if existing.get("config") == config:
+                    manifest = existing
+            except Exception:
+                pass
+        _write_manifest(manifest_path, manifest)
+
+        _ensure_dll_exists()
+        progress = comfy.utils.ProgressBar(len(plan))
+        success = False
+        try:
+            for index, ((start, end), part_path) in enumerate(zip(plan, parts)):
+                comfy.model_management.throw_exception_if_processing_interrupted()
+                count = end - start
+                if continue_if_stopped and _valid_part(part_path, count, fps):
+                    print(f"[DLSS5-Ox] Resume: chunk {index + 1}/{len(plan)} is already complete")
+                    progress.update(1)
+                    continue
+
+                sliced = video.as_trimmed(
+                    float(Fraction(start, 1) / fps),
+                    float(Fraction(count, 1) / fps),
+                    strict_duration=False,
+                )
+                if sliced is None:
+                    raise RuntimeError(f"Could not read DLSS chunk {index + 1}: frames {start}..{end - 1}")
+                components = sliced.get_components()
+                images = components.images
+                if images.shape[0] != count:
+                    raise RuntimeError(
+                        f"DLSS chunk {index + 1}: expected {count} frames, decoded {images.shape[0]}")
+
+                impl = DLSS5NeuralRendering()
+                result = impl.process(
+                    images, upscaling_mode=upscaling_mode,
+                    dlss_model_preset=dlss_model_preset, style=style, preset=preset,
+                    intensity=intensity, tone=tone, structure=structure, skin=skin,
+                    auto_mask=auto_mask, temporal_mode=temporal_mode,
+                    scene_change_threshold=scene_change_threshold,
+                    warmup_frames=warmup_frames, gpu_mode=gpu_mode,
+                    chunk_frames=0, change_frame=change_frame,
+                )[0]
+                _write_part(result, fps, part_path)
+
+                completed = set(manifest.get("completed_parts", []))
+                completed.add(index)
+                manifest["completed_parts"] = sorted(completed)
+                _write_manifest(manifest_path, manifest)
+                progress.update(1)
+
+                del result, images, components, sliced, impl
+                gc.collect()
+                comfy.model_management.soft_empty_cache()
+
+            for (start, end), part_path in zip(plan, parts):
+                if not _valid_part(part_path, end - start, fps):
+                    raise RuntimeError(f"Invalid or incomplete DLSS chunk: {part_path.name}")
+
+            first = VideoFromFile(str(parts[0]))
+            width, height = first.get_dimensions()
+            output_folder, filename, counter, subfolder, _ = folder_paths.get_save_image_path(
+                "video/DLSS5_video", folder_paths.get_output_directory(), width, height)
+            output_file = f"{filename}_{counter:05}_.mp4"
+            final_path = Path(output_folder) / output_file
+            concat_path = temp_root / "parts.ffconcat"
+            concat_path.write_text(
+                "ffconcat version 1.0\n" + "".join(
+                    f"file '{_ffconcat_path(path)}'\n" for path in parts),
+                encoding="utf-8",
+            )
+
+            ffmpeg = shutil.which("ffmpeg")
+            trim_start, trim_duration = (video.get_active_trim_window()
+                                         if hasattr(video, "get_active_trim_window") else (0.0, 0.0))
+            duration = float(Fraction(total_frames, 1) / fps)
+            audio_input = []
+            if trim_start > 0:
+                audio_input += ["-ss", f"{trim_start:.9f}"]
+            audio_input += ["-t", f"{min(trim_duration, duration) if trim_duration > 0 else duration:.9f}"]
+            command = [
+                ffmpeg, "-hide_banner", "-loglevel", "warning", "-y",
+                "-f", "concat", "-safe", "0", "-i", str(concat_path),
+                *audio_input, "-i", str(source),
+                "-map", "0:v:0", "-map", "1:a:0?", "-c:v", "copy",
+                "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart",
+                str(final_path),
+            ]
+            assembled = subprocess.run(command, capture_output=True, text=True)
+            if assembled.returncode:
+                final_path.unlink(missing_ok=True)
+                raise RuntimeError("FFmpeg failed to assemble DLSS chunks:\n" + assembled.stderr[-4000:])
+
+            success = True
+            result_video = VideoFromFile(str(final_path))
+            ui = {
+                "images": [{"filename": output_file, "subfolder": subfolder, "type": "output"}],
+                "animated": (True,),
+            }
+            return {"ui": ui, "result": (result_video,)}
+        except Exception:
+            if continue_if_stopped:
+                print(f"[DLSS5-Ox] Resume data saved: {temp_root}")
+            raise
+        finally:
+            if success or not continue_if_stopped:
+                shutil.rmtree(temp_root, ignore_errors=True)
+            if resume_root.is_dir():
+                try:
+                    resume_root.rmdir()
+                except OSError:
+                    pass
